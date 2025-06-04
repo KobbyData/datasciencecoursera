@@ -1,15 +1,23 @@
 # Getting and Cleaning Data Project
 
-## Files
-- `run_analysis.R`: Script that processes the data
-- `tidy_dataset.txt`: Final tidy data set
-- `CodeBook.md`: Describes variables and transformations
-- `README.md`: Project overview
+This repository contains the files for the course project of the Coursera Getting and Cleaning Data course.
 
-## Running the Script
-1. Clone the repository
-2. Ensure `run_analysis.R` and the zipped dataset or its extracted folder are in the working directory
-3. Run:
+## Contents
 
-```R
-source("run_analysis.R")
+- `run_analysis.R`: R script that processes the raw dataset and creates a tidy dataset.
+- `tidy_dataset.txt`: Output file containing the tidy dataset.
+- `CodeBook.md`: Describes the variables and transformations.
+- `README.md`: This file, explaining the project structure.
+
+## How to Run
+
+1. Clone the repo or download the files.
+2. Run `run_analysis.R` in R or RStudio.
+3. The tidy dataset will be saved as `tidy_dataset.txt`.
+
+## Dependencies
+
+- R
+- `dplyr` package
+
+The script downloads and extracts the original dataset if it's not already present.
