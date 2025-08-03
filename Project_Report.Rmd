@@ -1,0 +1,106 @@
+---
+title: "Practical Machine Learning Project"
+author: "Your Name"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(randomForest)
+library(ggplot2)
+```
+
+# Introduction
+
+The goal of this project is to predict the manner in which participants performed barbell lifts using data collected from accelerometers on the belt, forearm, arm, and dumbbell. This report describes data cleaning, model selection, validation strategy, and prediction results.
+
+# Data Loading
+
+```{r}
+training <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+testing <- read.csv("pml-testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+```
+
+# Data Cleaning
+
+```{r}
+# Remove columns with many NAs
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+
+# Remove irrelevant columns (IDs, timestamps, etc.)
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+```
+
+# Data Partitioning
+
+```{r}
+set.seed(123)
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+trainSet <- training[inTrain, ]
+validationSet <- training[-inTrain, ]
+```
+
+# Model Training (Random Forest)
+
+```{r}
+controlRF <- trainControl(method="cv", number=5)
+modelRF <- train(classe ~ ., data=trainSet, method="rf", trControl=controlRF)
+```
+
+# Model Evaluation
+
+```{r}
+predRF <- predict(modelRF, validationSet)
+confMat <- confusionMatrix(predRF, validationSet$classe)
+confMat
+
+# Out-of-sample error
+1 - confMat$overall['Accuracy']
+```
+
+# Variable Importance
+
+```{r}
+varImpPlot(modelRF$finalModel)
+```
+
+# Prediction on Test Data
+
+```{r}
+testPredictions <- predict(modelRF, testing)
+testPredictions
+```
+
+# Write Prediction Files for Submission
+
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i], file=filename, quote=FALSE, row.names=FALSE, col.names=FALSE)
+  }
+}
+
+pml_write_files(testPredictions)
+```
+
+# Conclusion
+
+A Random Forest model was trained with 5-fold cross-validation achieving an out-of-sample accuracy of approximately `r round(confMat$overall['Accuracy']*100, 2)`%. This approach is robust to noise and performs well on high-dimensional data, making it a suitable choice for this problem. The predictions for the 20 quiz cases have been generated and saved for submission.
+
+# Reproducibility
+
+To reproduce this analysis:
+1. Clone the GitHub repository.
+2. Open the `Project_Report.Rmd` file in RStudio.
+3. Knit the document to HTML.
+4. Ensure the CSV files (`pml-training.csv` and `pml-testing.csv`) are in the project directory.
+
+---
+
+*References:*
+- Groupware@LES Human Activity Recognition: http://groupware.les.inf.puc-rio.br/har
