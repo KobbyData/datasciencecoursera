@@ -1,0 +1,114 @@
+---
+title: "Practical Machine Learning Course Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(randomForest)
+library(ggplot2)
+```
+
+# Introduction
+
+In this project, we aim to predict the manner in which participants performed barbell lifts using data collected from accelerometers on their belt, forearm, arm, and dumbbell. The target variable is `classe`, which has five levels (A-E), each corresponding to a particular exercise execution type.
+
+# Data Preparation
+
+## Load Data
+```{r load-data}
+training <- read.csv("pml-training.csv", na.strings = c("NA", "", "#DIV/0!"))
+testing <- read.csv("pml-testing.csv", na.strings = c("NA", "", "#DIV/0!"))
+```
+
+## Clean Data
+```{r clean-data}
+# Remove near zero variance predictors
+nzv <- nearZeroVar(training)
+training <- training[, -nzv]
+
+# Remove columns with >95% NA values
+na_counts <- colSums(is.na(training))
+training <- training[, which(na_counts / nrow(training) < 0.95)]
+
+# Remove identification and timestamp columns
+training <- training[, -(1:5)]
+testing <- testing[, -(1:5)]
+```
+
+# Data Partitioning
+
+Partition the training data into 70% for model training and 30% for validation.
+
+```{r partition-data}
+set.seed(12345)
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+train_set <- training[inTrain, ]
+valid_set <- training[-inTrain, ]
+```
+
+# Load Pre-trained Model
+
+To avoid long computation during knitting, we pre-trained the Random Forest model and saved it as `model_rf.rds`. Here, we load the saved model.
+
+```{r load-model}
+model_rf <- readRDS("model_rf.rds")
+model_rf
+```
+
+# Model Evaluation
+
+Evaluate model performance on the validation set.
+
+```{r evaluate-model}
+# Predict on validation set
+pred_valid <- predict(model_rf, newdata = valid_set)
+
+# Align factor levels of prediction and validation labels to those in the original training set
+train_levels <- levels(model_rf$finalModel$y)  # levels from the training data used in the model
+
+pred_valid <- factor(pred_valid, levels = train_levels)
+valid_set$classe <- factor(valid_set$classe, levels = train_levels)
+
+# Check tables to debug
+print(table(pred_valid))
+print(table(valid_set$classe))
+
+# Now confusion matrix
+conf_matrix <- confusionMatrix(pred_valid, valid_set$classe)
+conf_matrix
+```
+
+Calculate the **out-of-sample error**:
+
+```{r out-of-sample-error}
+1 - conf_matrix$overall['Accuracy']
+```
+
+# Predict on Test Data
+
+Apply the trained model to the 20 provided test cases.
+
+```{r predict-test}
+predictions <- predict(model_rf, newdata = testing)
+predictions
+```
+
+# Conclusion
+
+The Random Forest model achieved high accuracy with a low expected out-of-sample error, indicating good generalization to unseen data. The predictions for the 20 test cases were generated and are ready for submission.
+
+# Appendix
+
+## Confusion Matrix Plot
+
+```{r plot-confusion-matrix}
+cm_df <- as.data.frame(conf_matrix$table)
+ggplot(cm_df, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  theme_minimal()
+```
+```
